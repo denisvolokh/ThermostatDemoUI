@@ -1,0 +1,565 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Skin xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		xmlns:mx="library://ns.adobe.com/flex/mx"
+		creationComplete="creationCompleteHandler(event)"
+		currentState="down">
+	<!-- host component -->
+	<fx:Metadata>
+		[HostComponent("sg.denisvolokh.nestThermostat.GWRThermostat")]
+	</fx:Metadata>
+	
+	<fx:Declarations>
+		<s:AnimateColor id="animateBackgroundColor"
+						target="{ backgroundSolid }"
+						colorPropertyName="color"
+						colorFrom="0x111111"
+						colorTo="0x004dd8"
+						duration="400"/>
+		<mx:AnimateProperty id="animateLabelAlpha" 
+						    repeatCount="3"
+							target="{ labelSubMain }"
+							property="alpha"
+							fromValue=".7"
+							toValue="0"
+							duration="800"/>
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="normal" enterState="enterNormalStateHandler(event)"/>
+		<s:State name="down"
+				 exitState="exitDownStateHandler(event)"
+				 enterState="enterDownStateHandler(event)"/>
+	</s:states>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			import mx.graphics.SolidColor;
+			
+			import sg.denisvolokh.nestThermostat.BarTick;
+			import sg.denisvolokh.nest.SmallTick;
+			
+			import spark.primitives.Path;
+			
+			override protected function commitProperties():void
+			{
+				super.commitProperties();
+			}
+			
+			override protected function updateDisplayList(w:Number, h:Number):void
+			{
+				super.updateDisplayList(w, h);
+			}
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				for (var i : int = minAngle; i < maxAngle; i=i+2)
+				{
+					var small:SmallTick = new SmallTick;
+					small.x = 100;
+					small.y = 100;
+					small.rotation = i;
+					groupBackgroundElements.addElement(small);
+				}
+				
+				_tempCurrent = hostComponent.currentValue;
+				labelMain.text = hostComponent.currentValue.toString();
+			}
+			
+			private var needToRepositionValueLabel : Boolean = false;
+			
+			private var alreadyChangedPosition : Boolean = false;
+			
+			private var minAngle : Number = 130;
+			
+			private var maxAngle : Number = 410;
+			
+			private var _tempPending : Number = 0;
+			
+			private var _tempCurrent : Number = 0;
+			
+			private function rotateMovingCursor(delta : Number):Number
+			{
+				var newValue : Number = _tempCurrent + delta;
+				
+				if (newValue >= maxAngle)
+				{
+					_tempCurrent = maxAngle;
+				}
+				else if (newValue <= minAngle)
+				{
+					_tempCurrent = minAngle;	
+				}
+				else
+				{
+					_tempCurrent = newValue;	
+				}
+				
+				if (delta != 0) 
+				{
+					this.addHighlighedTicks(hostComponent.currentValue, _tempCurrent);
+					
+					if (hostComponent.currentValue > _tempCurrent) 
+					{
+						if (this.alreadyChangedPosition == false) 
+						{
+							moveCurrentValueLabel(false);
+							this.alreadyChangedPosition = true;
+						}
+					}
+				}
+				
+				labelMain.text = _tempCurrent.toString()
+				
+				return _tempCurrent;
+			}
+			
+			private function addHighlighedTicks(from : int, to : int):void
+			{
+				this.highlighted.removeAllElements();
+				
+				var _from : int = from;
+				var _to : int = to;
+				
+				if (from >= to)
+				{
+					_from = to;
+					_to = from;
+				}
+				
+				for (var i : int = _from + 3; i < _to; i=i+2)
+				{
+					var small:BarTick = new BarTick;
+					small.color = 0xFFFFFF;
+					small.x = 100;
+					small.y = 100;
+					small.rotation = i;
+					this.highlighted.addElement(small);
+				}
+			}
+			
+			private function moveCurrentValueLabel(clockwise : Boolean = true):void
+			{
+				var _x : Number = 100 * Math.cos(hostComponent.currentValue * Math.PI / 180) + 150;
+				var _y : Number = 100 * Math.sin(hostComponent.currentValue * Math.PI / 180) + 150;
+				
+				var _offsetX : Number = 0;
+				var _offsetY : Number = 0;
+				
+				// this is INSANE! need to figure out one formula
+				
+				if (hostComponent.currentValue == minAngle)
+				{
+					_offsetX = 16;
+					_offsetY = -7;
+				} 
+				else if (hostComponent.currentValue >= (minAngle + 1) && hostComponent.currentValue <= 140)
+				{
+					if (clockwise) {
+						_offsetX = 10;
+						_offsetY = -7;						
+					} else {
+						_offsetX = -5;
+						_offsetY = -20;
+					}
+				}
+				else if (hostComponent.currentValue >= 141 && hostComponent.currentValue <= 150)
+				{
+					if (clockwise) {
+						_offsetX = 12;
+						_offsetY = -1;						
+					} else {
+						_offsetX = 0;
+						_offsetY = -20;
+					}
+				} 
+				else if (hostComponent.currentValue >= 151 && hostComponent.currentValue <= 159)
+				{
+					if (clockwise) {
+						_offsetX = 12;
+						_offsetY = 2;						
+					} else {
+						_offsetX = 4;
+						_offsetY = -20;
+					}
+				}
+				else if (hostComponent.currentValue >= 160 && hostComponent.currentValue <= 169)
+				{
+					if (clockwise) {
+						_offsetX = 12;
+						_offsetY = 3;						
+					} else {
+						_offsetX = 7;
+						_offsetY = -17;
+					}
+				}
+				else if (hostComponent.currentValue >= 170 && hostComponent.currentValue <= 180)
+				{
+					if (clockwise) {
+						_offsetX = 10;
+						_offsetY = 5;						
+					} else {
+						_offsetX = 9;
+						_offsetY = -14;
+					}
+				} 
+				else if (hostComponent.currentValue >= 181 && hostComponent.currentValue <= 190)
+				{
+					if (clockwise) {
+						_offsetX = 8;
+						_offsetY = 5;						
+					} else {
+						_offsetX = 9;
+						_offsetY = -10;
+					}
+					
+				}
+				else if (hostComponent.currentValue >= 191 && hostComponent.currentValue <= 198)
+				{
+					if (clockwise) {
+						_offsetX = 8;
+						_offsetY = 8;						
+					} else {
+						_offsetX = 12;
+						_offsetY = -7;
+					}
+				}
+				else if (hostComponent.currentValue >= 199 && hostComponent.currentValue <= 211)
+				{
+					if (clockwise) {
+						_offsetX = 4;
+						_offsetY = 13;						
+					} else {
+						_offsetX = 14;
+						_offsetY = -5;
+					}
+				}
+				else if (hostComponent.currentValue >= 212 && hostComponent.currentValue <= 218)
+				{
+					if (clockwise) {
+						_offsetX = 1;
+						_offsetY = 13;						
+					} else {
+						_offsetX = 16;
+						_offsetY = -2;
+					}
+				}
+				else if (hostComponent.currentValue >= 219 && hostComponent.currentValue <= 230)
+				{
+					if (clockwise) {
+						_offsetX = -6;
+						_offsetY = 13;						
+					} else {
+						_offsetX = 15;
+						_offsetY = 4;
+					}
+				}
+				else if (hostComponent.currentValue >= 231 && hostComponent.currentValue <= 239)
+				{
+					if (clockwise) {
+						_offsetX = -11;
+						_offsetY = 13;						
+					} else {
+						_offsetX = 12;
+						_offsetY = 7;
+					}
+				}
+				else if (hostComponent.currentValue >= 240 && hostComponent.currentValue <= 250)
+				{
+					if (clockwise) {
+						_offsetX = -14;
+						_offsetY = 13;						
+					} else {
+						_offsetX = 11;
+						_offsetY = 9;
+					}
+				}
+				else if (hostComponent.currentValue >= 251 && hostComponent.currentValue <= 264) 
+				{
+					if (clockwise) {
+						_offsetX = -17;
+						_offsetY = 16;						
+					} else {
+						_offsetX = 7;
+						_offsetY = 12;
+					}
+				}
+				else if (hostComponent.currentValue >= 265 && hostComponent.currentValue <= 269) 
+				{
+					if (clockwise) {
+						_offsetX = -19;
+						_offsetY = 15;						
+					} else {
+						_offsetX = 5;
+						_offsetY = 14;
+					}
+				}
+				else if (hostComponent.currentValue >= 270 && hostComponent.currentValue <= 275)
+				{
+					if (clockwise) {
+						_offsetX = -21;
+						_offsetY = 14;	
+					} else {
+						_offsetX = 4;
+						_offsetY = 14;
+					}
+					
+				}
+				else if (hostComponent.currentValue >= 276 && hostComponent.currentValue <= 285)
+				{
+					if (clockwise) {
+						_offsetX = -25;
+						_offsetY = 13;	
+					} else {
+						_offsetX = 4;
+						_offsetY = 17;
+					}
+					
+				}
+				else if (hostComponent.currentValue >= 286 && hostComponent.currentValue <= 295)
+				{
+					if (clockwise) {
+						_offsetX = -27;
+						_offsetY = 10;	
+					} else {
+						_offsetX = -3;
+						_offsetY = 19;
+					}
+					
+				}
+				else if (hostComponent.currentValue >= 296 && hostComponent.currentValue <= 310)
+				{
+					if (clockwise) {
+						_offsetX = -28;
+						_offsetY = 6;	
+					} else {
+						_offsetX = -8;
+						_offsetY = 22;
+					}
+				}
+				else if (hostComponent.currentValue >= 311 && hostComponent.currentValue <= 320)
+				{
+					if (clockwise) {
+						_offsetX = -29;
+						_offsetY = 2;						
+					} else {
+						_offsetX = -12;
+						_offsetY = 18;
+					}
+				}
+				else if (hostComponent.currentValue >= 321 && hostComponent.currentValue <= 335)
+				{
+					if (clockwise) {
+						_offsetX = -33;
+						_offsetY = -4;	
+					} else {
+						_offsetX = -15;
+						_offsetY = 15;
+					}
+					
+				}
+				else if (hostComponent.currentValue >= 336 && hostComponent.currentValue <= 345)
+				{
+					if (clockwise) {
+						_offsetX = -28;
+						_offsetY = -5;	
+					} else {
+						_offsetX = -20;
+						_offsetY = 11;
+					}
+				}
+				else if (hostComponent.currentValue >= 346 && hostComponent.currentValue <= 359)
+				{
+					if (clockwise) {
+						_offsetX = -25;
+						_offsetY = -9;	
+					} else {
+						_offsetX = -23;
+						_offsetY = 8;
+					}
+				}
+				else if (hostComponent.currentValue == 360)
+				{
+					_offsetX = -25;
+					_offsetY = -10;
+				}
+				else if (hostComponent.currentValue >= 361 && hostComponent.currentValue <= 370)
+				{
+					if (clockwise) {
+						_offsetX = -25;
+						_offsetY = -12;	
+					} else {
+						_offsetX = -25;
+						_offsetY = 4;
+					}
+					
+				}
+				else if (hostComponent.currentValue >= 371 && hostComponent.currentValue <= 380)
+				{
+					if (clockwise) {
+						_offsetX = -22;
+						_offsetY = -17;						
+					} else {
+						_offsetX = -28;
+						_offsetY = 2;
+					}
+				}
+				else if (hostComponent.currentValue >= 381 && hostComponent.currentValue <= 390)
+				{
+					if (clockwise) {
+						_offsetX = -20;
+						_offsetY = -19;	
+					} else {
+						_offsetX = -32;
+						_offsetY = -3;
+					}
+				}
+				else if (hostComponent.currentValue >= 391 && hostComponent.currentValue <= 400)
+				{
+					if (clockwise) {
+						_offsetX = -15;
+						_offsetY = -18;						
+					} else {
+						_offsetX = -34;
+						_offsetY = -9;	
+					}
+				}
+				else if (hostComponent.currentValue >= 401 && hostComponent.currentValue <= this.maxAngle)
+				{
+					if (clockwise) {
+						_offsetX = -8;
+						_offsetY = -21;						
+					} else {
+						_offsetX = -34;
+						_offsetY = -13;
+					}
+				}
+				labelCurrentValue.move(_x + _offsetX, _y + _offsetY);
+			}
+			
+			protected function enterDownStateHandler(event:FlexEvent):void
+			{
+				animateBackgroundColor.play();
+				cursorPendingPosition.rotation = hostComponent.currentValue;
+				
+				moveCurrentValueLabel();
+			}
+			
+			protected function enterNormalStateHandler(event:FlexEvent):void
+			{
+				cursorCurrentPosition.rotation = hostComponent.currentValue;
+			}
+			
+			protected function exitDownStateHandler(event:FlexEvent):void
+			{
+				if (_tempCurrent != hostComponent.currentValue)
+				{
+					if (animateLabelAlpha.isPlaying) {
+						animateLabelAlpha.stop();
+					}
+					
+					animateLabelAlpha.play();	
+				}
+				
+				animateBackgroundColor.play(null, true);
+				this.highlighted.removeAllElements();
+				hostComponent.currentValue = _tempCurrent;
+				
+				this.alreadyChangedPosition = false;
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Group width="300" height="300">
+		<s:Ellipse width="250" height="250"
+				   horizontalCenter="0" verticalCenter="0">
+			<s:fill>
+				<s:LinearGradient rotation="60">
+					<s:GradientEntry color="#f4f4f4" ratio="0" />
+					<s:GradientEntry color="#000000" ratio="1" />
+				</s:LinearGradient>
+			</s:fill>
+		</s:Ellipse>
+		<s:Ellipse width="220" height="220"
+				   horizontalCenter="0" verticalCenter="0">
+			<s:fill>
+				<s:LinearGradient rotation="60">
+					<s:GradientEntry color="#000000" ratio="0" />
+					<s:GradientEntry color="#777777" ratio="1" />
+				</s:LinearGradient>
+			</s:fill>
+		</s:Ellipse>
+	</s:Group>
+	<s:Group id="groupBackgroundElements"
+			 horizontalCenter="0" verticalCenter="0">
+		<s:Ellipse id="background" width="200" height="200"
+				   horizontalCenter="0" verticalCenter="0">
+			<s:fill>
+				<s:SolidColor id="backgroundSolid" color="#111111" />
+			</s:fill>
+		</s:Ellipse>
+		<s:Label id="labelSubMain"
+				 color="#d0d0d0"
+				 text="LEARNING"
+				 fontFamily="Droid"
+				 fontSize="12"
+				 alpha="0"
+				 horizontalCenter="0"
+				 verticalCenter="-25"/>
+		<s:Label id="labelMain" 
+				 color="#FFffff"
+				 horizontalCenter="0"
+				 verticalCenter="10"
+				 fontFamily="Droid"
+				 fontSize="55"/>
+	</s:Group>
+	<s:Group horizontalCenter="0" verticalCenter="0"
+			 width="200" height="200">
+		<s:Path id="cursorCurrentPosition" 
+				x="100" y="100"
+				data="M 74,-1 L 94,-1 94,3 74,3 Z">
+			<s:fill>
+				<s:SolidColor color="#b2b2b2"/>
+			</s:fill>
+		</s:Path>
+	</s:Group>
+	<s:Group horizontalCenter="0" verticalCenter="0"
+			 width="200" height="200">
+		<s:Path id="cursorPendingPosition" 
+				x="100" y="100"
+				rotation.down="{ rotateMovingCursor(hostComponent.currentValueDelta) }"
+				data.down="M 69,-1 L 94,-1 94,3 69,3 Z">
+			<s:fill>
+				<s:SolidColor color="#FFFFFF"/>
+			</s:fill>
+		</s:Path>
+	</s:Group>
+	<s:Group id="highlighted"
+			 horizontalCenter="0" verticalCenter="0"
+			 width="200" height="200"/>
+	<s:Label id="labelCurrentValue"
+			 includeIn="down"
+			 fontFamily="Droid"
+			 fontSize="9"
+			 color="#FFFFFF"
+			 text="{ hostComponent.currentValue }"/>
+	
+	<s:Ellipse width="200" height="200"
+			   horizontalCenter="0" verticalCenter="0">
+		<s:fill>
+			<s:LinearGradient rotation="240">
+				<s:GradientEntry color="#ffffff" alpha="0.1" ratio="0" />
+				<s:GradientEntry color="#ffffff" alpha="0" ratio="1" />
+			</s:LinearGradient>
+		</s:fill>
+	</s:Ellipse>
+	<!--<s:Ellipse x="38" y="38" width="224" height="224">
+		<s:fill>
+			<s:LinearGradient rotation="60">
+				<s:GradientEntry color="#ffffff" alpha="0.7" ratio="0" />
+				<s:GradientEntry color="#ffffff" alpha="0" ratio="1" />
+			</s:LinearGradient>
+		</s:fill>
+	</s:Ellipse>-->
+</s:Skin>
