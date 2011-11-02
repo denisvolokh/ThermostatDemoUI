@@ -16,13 +16,13 @@
 						colorFrom="0x111111"
 						colorTo="0x004dd8"
 						duration="400"/>
-		<mx:AnimateProperty id="animateLabelAlpha" 
+		<!--<mx:AnimateProperty id="animateLabelAlpha" 
 						    repeatCount="3"
 							target="{ labelSubMain }"
 							property="alpha"
 							fromValue=".7"
 							toValue="0"
-							duration="800"/>
+							duration="800"/>-->
 	</fx:Declarations>
 	
 	<s:states>
@@ -83,7 +83,7 @@
 				}
 				
 				_tempCurrent = hostComponent.currentValue;
-				labelMain.text = hostComponent.currentValue.toString();
+				labelCurrentDegress.text = (hostComponent.currentValue / 10).toFixed(1) + "°";
 			}
 			
 			private function rotateMovingCursor(delta : Number):Number
@@ -117,7 +117,7 @@
 					}
 				}
 				
-				labelMain.text = _tempCurrent.toString()
+				labelCurrentDegress.text = (_tempCurrent / 10).toFixed(1) + "°";
 				
 				return _tempCurrent;
 			}
@@ -148,7 +148,7 @@
 				
 				var g : Graphics = highlighted.graphics;
 				var arc : CSections = new CSections(87, 2, 100, 100, (_from - 2) * Math.PI / 180, (_to + 2) * Math.PI / 180);
-				g.beginFill(0xffffff, 0.9);
+				g.beginFill(0xC2B538, 0.9);
 				arc.draw(g);
 				g.endFill();
 			}
@@ -185,21 +185,31 @@
 			
 			protected function exitDownStateHandler(event:FlexEvent):void
 			{
-				if (_tempCurrent != hostComponent.currentValue)
+				/* if (_tempCurrent != hostComponent.currentValue)
 				{
 					if (animateLabelAlpha.isPlaying) {
 						animateLabelAlpha.stop();
 					}
 					
 					animateLabelAlpha.play();	
-				}
+				} */
 				
 				//animateBackgroundColor.play(null, true);
 				
-				removeHighlighedTicks();
-				hostComponent.currentValue = _tempCurrent;
+				if (hostComponent.currentValue != this._tempCurrent)
+				{
+					labelConfirmChanges.visible = true;
+					this.groupKeepOldValues.visible = true;	
+				}
 				
 				this.alreadyChangedPosition = false;
+			}
+			
+			protected function groupKeepOldValues_clickHandler(event:MouseEvent):void
+			{
+				removeHighlighedTicks();
+				hostComponent.currentValue = _tempCurrent;
+				labelCurrentDegress.text = (hostComponent.currentValue / 10).toFixed(1) + "°";
 			}
 			
 		]]>
@@ -234,37 +244,41 @@
 				<s:SolidColor id="backgroundSolid" color="#111111" />
 			</s:fill>
 		</s:Ellipse>
-		<s:VGroup horizontalCenter="0"
-				  verticalCenter="10"
-				  horizontalAlign="center"
-				  verticalAlign="middle"
-				  gap="0">
-			<s:Label id="labelMain" 
+		<s:VGroup gap="0" 
+				  horizontalAlign="center" verticalAlign="middle"
+				  verticalCenter="0" horizontalCenter="0">
+			<s:Label id="labelCurrentDegress" 
 					 color="#FFffff"
 					 fontFamily="Droid"
-					 fontSize="55"/>
-			<s:Label id="labelSubMain"
+					 fontSize="52"
+					 paddingLeft="20"/>
+			<s:Label id="labelConfirmChanges"
 					 color="#d0d0d0"
 					 text="CONFIRM CHANGE"
 					 fontFamily="Droid"
-					 fontSize="16"
-					 alpha="0"/>
+					 fontSize="14"
+					 visible="false"/>
 		</s:VGroup>
 		
-		<s:VGroup gap="0" 
+		<s:VGroup id="groupKeepOldValues"
+				  visible="false"
+				  gap="0" 
 				  horizontalAlign="center" verticalAlign="middle"
-				  horizontalCenter="0" verticalCenter="85">
+				  horizontalCenter="0" verticalCenter="85"
+				  mouseChildren="false"
+				  useHandCursor="true"
+				  buttonMode="true"
+				  click="groupKeepOldValues_clickHandler(event)">
 			<s:Label id="labelKeepMain" 
-					 color="#FFffff"
+					 color="#C2B538"
 					 fontFamily="Droid"
-					 fontSize="26"
+					 fontSize="22"
 					 text="KEEP"/>
-			<s:Label id="labelKeepSubMain"
-					 color="#d0d0d0"
-					 text="26"
+			<s:Label color="#C2B538"
+					 text="26.4°"
+					 fontWeight="bold"
 					 fontFamily="Droid"
-					 fontSize="26"
-					 alpha="1"/>
+					 fontSize="26"/>
 		</s:VGroup>
 	</s:Group>
 	<s:Group id="highlighted"
