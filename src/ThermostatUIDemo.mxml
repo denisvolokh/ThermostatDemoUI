@@ -6,6 +6,8 @@
 		<!-- Place non-visual elements (e.g., services, value objects) here -->
 	</fx:Declarations>
 	
+	<fx:Style source="default.css"/>
+	
 	<gwr:GWRThermostat horizontalCenter="0"
 					   verticalCenter="0"
 					   skinClass="sg.denisvolokh.gwr.skin.GWRThermostatSkin"/>

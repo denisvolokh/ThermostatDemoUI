@@ -44,7 +44,12 @@
 			import sg.denisvolokh.gwr.BarTick;
 			
 			import spark.filters.GlowFilter;
+			import spark.primitives.Graphic;
 			import spark.primitives.Path;
+			
+			import utils.Arc;
+			import utils.CSections;
+			import utils.Wedge;
 			
 			private var needToRepositionValueLabel : Boolean = false;
 			
@@ -119,7 +124,7 @@
 			
 			private function addHighlighedTicks(from : int, to : int):void
 			{
-				this.highlighted.removeAllElements();
+				removeHighlighedTicks();
 				
 				var _from : int = from;
 				var _to : int = to;
@@ -140,6 +145,18 @@
 					small.rotation = i;
 					this.highlighted.addElement(small);
 				}
+				
+				var g : Graphics = highlighted.graphics;
+				var arc : CSections = new CSections(87, 2, 100, 100, (_from - 2) * Math.PI / 180, (_to + 2) * Math.PI / 180);
+				g.beginFill(0xffffff, 0.9);
+				arc.draw(g);
+				g.endFill();
+			}
+			
+			private function removeHighlighedTicks():void
+			{
+				this.highlighted.removeAllElements();
+				highlighted.graphics.clear();
 			}
 			
 			private function moveCurrentValueLabel(clockwise : Boolean = true):void
@@ -178,7 +195,8 @@
 				}
 				
 				//animateBackgroundColor.play(null, true);
-				this.highlighted.removeAllElements();
+				
+				removeHighlighedTicks();
 				hostComponent.currentValue = _tempCurrent;
 				
 				this.alreadyChangedPosition = false;
@@ -216,20 +234,38 @@
 				<s:SolidColor id="backgroundSolid" color="#111111" />
 			</s:fill>
 		</s:Ellipse>
-		<s:Label id="labelSubMain"
-				 color="#d0d0d0"
-				 text="LEARNING"
-				 fontFamily="Droid"
-				 fontSize="12"
-				 alpha="0"
-				 horizontalCenter="0"
-				 verticalCenter="-25"/>
-		<s:Label id="labelMain" 
-				 color="#FFffff"
-				 horizontalCenter="0"
-				 verticalCenter="10"
-				 fontFamily="Droid"
-				 fontSize="55"/>
+		<s:VGroup horizontalCenter="0"
+				  verticalCenter="10"
+				  horizontalAlign="center"
+				  verticalAlign="middle"
+				  gap="0">
+			<s:Label id="labelMain" 
+					 color="#FFffff"
+					 fontFamily="Droid"
+					 fontSize="55"/>
+			<s:Label id="labelSubMain"
+					 color="#d0d0d0"
+					 text="CONFIRM CHANGE"
+					 fontFamily="Droid"
+					 fontSize="16"
+					 alpha="0"/>
+		</s:VGroup>
+		
+		<s:VGroup gap="0" 
+				  horizontalAlign="center" verticalAlign="middle"
+				  horizontalCenter="0" verticalCenter="85">
+			<s:Label id="labelKeepMain" 
+					 color="#FFffff"
+					 fontFamily="Droid"
+					 fontSize="26"
+					 text="KEEP"/>
+			<s:Label id="labelKeepSubMain"
+					 color="#d0d0d0"
+					 text="26"
+					 fontFamily="Droid"
+					 fontSize="26"
+					 alpha="1"/>
+		</s:VGroup>
 	</s:Group>
 	<s:Group id="highlighted"
 			 horizontalCenter="0" verticalCenter="0"
