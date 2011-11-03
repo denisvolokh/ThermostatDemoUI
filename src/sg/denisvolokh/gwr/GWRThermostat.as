@@ -2,10 +2,13 @@ package sg.denisvolokh.gwr
 {
 	import flash.events.MouseEvent;
 	
+	import spark.components.Group;
+	import spark.components.VGroup;
 	import spark.components.supportClasses.SkinnableComponent;
 	
 	[SkinState("normal")]
 	[SkinState("down")]
+	[SkinState("notConfirmed")]
 	
 	[Bindable]
 	public class GWRThermostat extends SkinnableComponent
@@ -20,15 +23,51 @@ package sg.denisvolokh.gwr
 			addEventListener(MouseEvent.MOUSE_DOWN, onMouseDownHandler);
 		}
 		
-		private var mouseDownY : Number;
+		[SkinPart(required="false")]
+		public var containerPrevValues : VGroup;
 		
-		private var mouseDownInitial : Number;
+		[SkinPart(required="false")]
+		public var containerCurrentValues : VGroup;
+		
+		private var mouseDownY : Number;
 		
 		public var currentValue : Number = 270;
 		
 		public var currentValueDelta : Number = 0;
 		
-		private var acumulatedDelta : Number = 0;
+		public var pendingValue : Number = 0;
+		
+		private var _notConfirmed : Boolean = false;
+		
+		private var notConfirmedChanged : Boolean = false;
+		
+		public function get notConfirmed():Boolean
+		{
+			return _notConfirmed;
+		}
+		
+		public function set notConfirmed(value:Boolean):void
+		{
+			_notConfirmed = value;
+			
+			notConfirmedChanged = true;
+			invalidateProperties();
+			invalidateSkinState();
+		}
+		
+		private var _isMouseDown : Boolean = false;
+		
+		public function get isMouseDown():Boolean
+		{
+			return _isMouseDown;
+		}
+		
+		public function set isMouseDown(value:Boolean):void
+		{
+			_isMouseDown = value;
+			
+			invalidateSkinState();
+		}
 		
 		private function onMouseDownHandler(event : MouseEvent):void
 		{
@@ -38,13 +77,11 @@ package sg.denisvolokh.gwr
 			addEventListener(MouseEvent.MOUSE_UP, onMouseUpHandler);
 			
 			mouseDownY = event.stageY;
-			mouseDownInitial = event.stageY;
 		}
 		
 		private function onMouseMoveHandler(event : MouseEvent):void
 		{
-			this.currentValueDelta = event.stageY - mouseDownY;
-			//this.currentValue += this.currentValueDelta;
+			currentValueDelta = event.stageY - mouseDownY;
 			
 			mouseDownY = event.stageY;
 		}
@@ -57,20 +94,72 @@ package sg.denisvolokh.gwr
 			currentValueDelta = 0;
 			
 			isMouseDown = false;
+			
+			if (currentValue != pendingValue)
+			{
+				notConfirmed = true;
+			}
 		}
 		
-		private var _isMouseDown : Boolean = false;
-
-		public function get isMouseDown():Boolean
+		private function onPrevValuesClickHandler(event : *):void
 		{
-			return _isMouseDown;
+			notConfirmed = false;
 		}
-
-		public function set isMouseDown(value:Boolean):void
+		
+		private function onCurrentValuesClickHandler(event : *):void
 		{
-			_isMouseDown = value;
+			currentValue = pendingValue;
 			
-			invalidateSkinState();
+			notConfirmed = false;
+		}
+		
+		override protected function commitProperties():void
+		{
+			super.commitProperties();
+			
+			if (notConfirmedChanged)
+			{
+				notConfirmedChanged = false;
+				
+				if (notConfirmed)
+				{
+					removeEventListener(MouseEvent.MOUSE_DOWN, onMouseDownHandler);
+				}
+				else
+				{
+					addEventListener(MouseEvent.MOUSE_DOWN, onMouseDownHandler);
+				}
+			}
+		}
+		
+		override protected function partAdded(partName:String, instance:Object):void
+		{
+			super.partAdded(partName, instance);
+			
+			if (containerPrevValues == instance)
+			{
+				containerPrevValues.addEventListener(MouseEvent.CLICK, onPrevValuesClickHandler);
+			}
+			
+			if (containerCurrentValues)
+			{
+				containerCurrentValues.addEventListener(MouseEvent.CLICK, onCurrentValuesClickHandler);
+			}
+		}
+		
+		override protected function partRemoved(partName:String, instance:Object):void
+		{
+			super.partRemoved(partName, instance);
+			
+			if (containerPrevValues == instance)
+			{
+				containerPrevValues.removeEventListener(MouseEvent.CLICK, onPrevValuesClickHandler);
+			}
+			
+			if (containerCurrentValues)
+			{
+				containerCurrentValues.removeEventListener(MouseEvent.CLICK, onCurrentValuesClickHandler);
+			}
 		}
 		
 		override protected function getCurrentSkinState():String
@@ -78,6 +167,11 @@ package sg.denisvolokh.gwr
 			if (isMouseDown)
 			{
 				return "down";
+			}
+			
+			if (notConfirmed)
+			{
+				return "notConfirmed";
 			}
 			
 			return "normal";
