@@ -16,24 +16,20 @@
 						colorFrom="0x111111"
 						colorTo="0x004dd8"
 						duration="400"/>
-		<mx:AnimateProperty id="animateAlpha" 
-						    repeatCount="0"
-							targets="{ [labelConfirmChanges, labelCurrentDegress] }"
+		<!--<mx:AnimateProperty id="animateLabelAlpha" 
+						    repeatCount="3"
+							target="{ labelSubMain }"
 							property="alpha"
-							fromValue=".4"
-							toValue="1"
-							duration="800"/>
+							fromValue=".7"
+							toValue="0"
+							duration="800"/>-->
 	</fx:Declarations>
 	
 	<s:states>
 		<s:State name="normal" enterState="enterNormalStateHandler(event)"/>
 		<s:State name="down"
-				 stateGroups="pending"
 				 exitState="exitDownStateHandler(event)"
 				 enterState="enterDownStateHandler(event)"/>
-		<s:State name="notConfirmed"
-				 stateGroups="pending"
-				 enterState="notConfirmedEnterStateHandler(event)"/>
 	</s:states>
 	
 	<fx:Script>
@@ -56,6 +52,8 @@
 			import utils.Wedge;
 			
 			private var needToRepositionValueLabel : Boolean = false;
+			
+			private var alreadyChangedPosition : Boolean = false;
 			
 			private var minAngle : Number = 130;
 			
@@ -80,7 +78,7 @@
 					trace(j,i,RGB(range[j]).toHex().hex)
 					small.color = RGB(range[j]).toHex().hex;
 					small.rotation = i;
-					containerBackground.addElement(small);
+					groupBackgroundElements.addElement(small);
 					j++;
 				}
 				
@@ -108,10 +106,18 @@
 				if (delta != 0) 
 				{
 					this.addHighlighedTicks(hostComponent.currentValue, _tempCurrent);
+					
+					if (hostComponent.currentValue > _tempCurrent) 
+					{
+						if (this.alreadyChangedPosition == false) 
+						{
+							moveCurrentValueLabel(false);
+							this.alreadyChangedPosition = true;
+						}
+					}
 				}
 				
 				labelCurrentDegress.text = (_tempCurrent / 10).toFixed(1) + "°";
-				hostComponent.pendingValue = _tempCurrent;
 				
 				return _tempCurrent;
 			}
@@ -166,6 +172,7 @@
 			
 			protected function enterDownStateHandler(event:FlexEvent):void
 			{
+				//animateBackgroundColor.play();
 				cursorPendingPosition.rotation = hostComponent.currentValue;
 				
 				moveCurrentValueLabel();
@@ -173,18 +180,36 @@
 			
 			protected function enterNormalStateHandler(event:FlexEvent):void
 			{
-				labelCurrentDegress.text = (hostComponent.currentValue / 10).toFixed(1) + "°";
-				
 				cursorCurrentPosition.rotation = hostComponent.currentValue;
 			}
 			
 			protected function exitDownStateHandler(event:FlexEvent):void
 			{
+				/* if (_tempCurrent != hostComponent.currentValue)
+				{
+					if (animateLabelAlpha.isPlaying) {
+						animateLabelAlpha.stop();
+					}
+					
+					animateLabelAlpha.play();	
+				} */
+				
+				//animateBackgroundColor.play(null, true);
+				
+				if (hostComponent.currentValue != this._tempCurrent)
+				{
+					labelConfirmChanges.visible = true;
+					this.groupKeepOldValues.visible = true;	
+				}
+				
+				this.alreadyChangedPosition = false;
 			}
 			
-			protected function notConfirmedEnterStateHandler(event:FlexEvent):void
+			protected function groupKeepOldValues_clickHandler(event:MouseEvent):void
 			{
-				labelPrevValue.text = (hostComponent.currentValue / 10).toFixed(1) + "°";
+				removeHighlighedTicks();
+				hostComponent.currentValue = _tempCurrent;
+				labelCurrentDegress.text = (hostComponent.currentValue / 10).toFixed(1) + "°";
 			}
 			
 		]]>
@@ -209,7 +234,7 @@
 			</s:fill>
 		</s:Ellipse>
 	</s:Group>
-	<s:Group id="containerBackground"
+	<s:Group id="groupBackgroundElements"
 			 horizontalCenter="0" verticalCenter="0"
 			 width="250" height="250">
 		<s:Ellipse id="background" 
@@ -219,13 +244,9 @@
 				<s:SolidColor id="backgroundSolid" color="#111111" />
 			</s:fill>
 		</s:Ellipse>
-		<s:VGroup id="containerCurrentValues"
-				  gap="0" 
+		<s:VGroup gap="0" 
 				  horizontalAlign="center" verticalAlign="middle"
-				  verticalCenter="0" horizontalCenter="0"
-				  mouseChildren.notConfirmed="false"
-				  useHandCursor.notConfirmed="true"
-				  buttonMode.notConfirmed="true">
+				  verticalCenter="0" horizontalCenter="0">
 			<s:Label id="labelCurrentDegress" 
 					 color="#FFffff"
 					 fontFamily="Droid"
@@ -236,28 +257,28 @@
 					 text="CONFIRM CHANGE"
 					 fontFamily="Droid"
 					 fontSize="14"
-					 visible="false"
-					 visible.notConfirmed="true"/>
+					 visible="false"/>
 		</s:VGroup>
 		
-		<s:VGroup id="containerPrevValues"
-				  includeIn="notConfirmed"
+		<s:VGroup id="groupKeepOldValues"
+				  visible="false"
 				  gap="0" 
 				  horizontalAlign="center" verticalAlign="middle"
-				  horizontalCenter="0" verticalCenter="95"
+				  horizontalCenter="0" verticalCenter="85"
 				  mouseChildren="false"
 				  useHandCursor="true"
-				  buttonMode="true">
+				  buttonMode="true"
+				  click="groupKeepOldValues_clickHandler(event)">
 			<s:Label id="labelKeepMain" 
 					 color="#C2B538"
 					 fontFamily="Droid"
 					 fontSize="22"
 					 text="KEEP"/>
-			<s:Label id="labelPrevValue"
-					 color="#C2B538"
+			<s:Label color="#C2B538"
+					 text="26.4°"
+					 fontWeight="bold"
 					 fontFamily="Droid"
-					 fontSize="26"
-					 paddingLeft="10"/>
+					 fontSize="26"/>
 		</s:VGroup>
 	</s:Group>
 	<s:Group id="highlighted"
@@ -278,9 +299,9 @@
 			 width="200" height="200">
 		<s:Path id="cursorPendingPosition" 
 				x="100" y="100"
-				rotation.pending="{ rotateMovingCursor(hostComponent.currentValueDelta) }"
-				data.pending="M 94,-2 L 114,-2 114,4 94,4 Z"
-				filters.pending="{ [new spark.filters.GlowFilter(0xFFFFFF, .9, 12, 12, 1, 2)] }">
+				rotation.down="{ rotateMovingCursor(hostComponent.currentValueDelta) }"
+				data.down="M 94,-2 L 114,-2 114,4 94,4 Z"
+				filters.down="{ [new spark.filters.GlowFilter(0xFFFFFF, .9, 12, 12, 1, 2)] }">
 			<s:fill>
 				<s:SolidColor color="#FFFFFF"/>
 			</s:fill>
