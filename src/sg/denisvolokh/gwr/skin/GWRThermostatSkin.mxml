@@ -10,26 +10,52 @@
 	</fx:Metadata>
 	
 	<fx:Declarations>
-		<s:AnimateColor id="animateBackgroundColor"
+		<!--<s:AnimateColor id="animateBackgroundColor"
 						target="{ backgroundSolid }"
 						colorPropertyName="color"
 						colorFrom="0x111111"
 						colorTo="0x004dd8"
 						duration="400"/>
-		<mx:AnimateProperty id="animateLabelAlpha" 
-						    repeatCount="3"
-							target="{ labelSubMain }"
+		
+		<mx:AnimateProperty id="animateAlpha" 
+						    repeatCount="0"
+							targets="{ [labelConfirmChanges, labelCurrentDegress] }"
 							property="alpha"
-							fromValue=".7"
-							toValue="0"
-							duration="800"/>
+							fromValue=".4"
+							toValue="1"
+							duration="800"/>-->
+		
+		<s:Animate id="filterAnimateGlowHighlight" 
+						 target="{ filterGlowHighlight }" 
+						 duration="700"
+						 repeatCount="0"
+						 repeatBehavior="reverse">
+			<s:SimpleMotionPath property="alpha" 
+								valueFrom=".9" 
+								valueTo=".1"/>
+		</s:Animate>
+		
+		<s:GlowFilter id="filterGlowHighlight" 
+					  color="#FFFFFF" 
+					  alpha=".9" 
+					  blurX="12" 
+					  blurY="12" 
+					  strength="1" 
+					  quality="2"/>
 	</fx:Declarations>
+	
+
 	
 	<s:states>
 		<s:State name="normal" enterState="enterNormalStateHandler(event)"/>
 		<s:State name="down"
+				 stateGroups="pending"
 				 exitState="exitDownStateHandler(event)"
 				 enterState="enterDownStateHandler(event)"/>
+		<s:State name="notConfirmed"
+				 stateGroups="pending"
+				 exitState="exitNotConfirmedStateHandler(event)"
+				 enterState="notConfirmedEnterStateHandler(event)"/>
 	</s:states>
 	
 	<fx:Script>
@@ -52,8 +78,6 @@
 			import utils.Wedge;
 			
 			private var needToRepositionValueLabel : Boolean = false;
-			
-			private var alreadyChangedPosition : Boolean = false;
 			
 			private var minAngle : Number = 130;
 			
@@ -78,12 +102,12 @@
 					trace(j,i,RGB(range[j]).toHex().hex)
 					small.color = RGB(range[j]).toHex().hex;
 					small.rotation = i;
-					groupBackgroundElements.addElement(small);
+					containerBackground.addElement(small);
 					j++;
 				}
 				
 				_tempCurrent = hostComponent.currentValue;
-				labelMain.text = hostComponent.currentValue.toString();
+				labelCurrentDegress.text = (hostComponent.currentValue / 10).toFixed(1) + "°";
 			}
 			
 			private function rotateMovingCursor(delta : Number):Number
@@ -106,25 +130,17 @@
 				if (delta != 0) 
 				{
 					this.addHighlighedTicks(hostComponent.currentValue, _tempCurrent);
-					
-					if (hostComponent.currentValue > _tempCurrent) 
-					{
-						if (this.alreadyChangedPosition == false) 
-						{
-							moveCurrentValueLabel(false);
-							this.alreadyChangedPosition = true;
-						}
-					}
 				}
 				
-				labelMain.text = _tempCurrent.toString()
+				labelCurrentDegress.text = (_tempCurrent / 10).toFixed(1) + "°";
+				hostComponent.pendingValue = _tempCurrent;
 				
 				return _tempCurrent;
 			}
 			
 			private function addHighlighedTicks(from : int, to : int):void
 			{
-				removeHighlighedTicks();
+				clearHighlighedTicks();
 				
 				var _from : int = from;
 				var _to : int = to;
@@ -148,58 +164,43 @@
 				
 				var g : Graphics = highlighted.graphics;
 				var arc : CSections = new CSections(87, 2, 100, 100, (_from - 2) * Math.PI / 180, (_to + 2) * Math.PI / 180);
-				g.beginFill(0xffffff, 0.9);
+				g.beginFill(0xC2B538, 0.9);
 				arc.draw(g);
 				g.endFill();
 			}
 			
-			private function removeHighlighedTicks():void
+			private function clearHighlighedTicks():void
 			{
 				this.highlighted.removeAllElements();
 				highlighted.graphics.clear();
 			}
 			
-			private function moveCurrentValueLabel(clockwise : Boolean = true):void
-			{
-				var _x : Number = 100 * Math.cos(hostComponent.currentValue * Math.PI / 180) + 150;
-				var _y : Number = 100 * Math.sin(hostComponent.currentValue * Math.PI / 180) + 150;
-				
-				var _offsetX : Number = 0;
-				var _offsetY : Number = 0;
-				
-				labelCurrentValue.move(_x + _offsetX, _y + _offsetY);
-			}
-			
 			protected function enterDownStateHandler(event:FlexEvent):void
 			{
-				//animateBackgroundColor.play();
 				cursorPendingPosition.rotation = hostComponent.currentValue;
-				
-				moveCurrentValueLabel();
+				filterAnimateGlowHighlight.play();
 			}
 			
 			protected function enterNormalStateHandler(event:FlexEvent):void
 			{
+				labelCurrentDegress.text = (hostComponent.currentValue / 10).toFixed(1) + "°";
+				
 				cursorCurrentPosition.rotation = hostComponent.currentValue;
 			}
 			
 			protected function exitDownStateHandler(event:FlexEvent):void
 			{
-				if (_tempCurrent != hostComponent.currentValue)
-				{
-					if (animateLabelAlpha.isPlaying) {
-						animateLabelAlpha.stop();
-					}
-					
-					animateLabelAlpha.play();	
-				}
-				
-				//animateBackgroundColor.play(null, true);
-				
-				removeHighlighedTicks();
-				hostComponent.currentValue = _tempCurrent;
-				
-				this.alreadyChangedPosition = false;
+			}
+			
+			protected function notConfirmedEnterStateHandler(event:FlexEvent):void
+			{
+				labelPrevValue.text = (hostComponent.currentValue / 10).toFixed(1) + "°";
+			}
+			
+			protected function exitNotConfirmedStateHandler(event:FlexEvent):void
+			{
+				clearHighlighedTicks();
+				filterAnimateGlowHighlight.stop();
 			}
 			
 		]]>
@@ -224,7 +225,7 @@
 			</s:fill>
 		</s:Ellipse>
 	</s:Group>
-	<s:Group id="groupBackgroundElements"
+	<s:Group id="containerBackground"
 			 horizontalCenter="0" verticalCenter="0"
 			 width="250" height="250">
 		<s:Ellipse id="background" 
@@ -234,37 +235,45 @@
 				<s:SolidColor id="backgroundSolid" color="#111111" />
 			</s:fill>
 		</s:Ellipse>
-		<s:VGroup horizontalCenter="0"
-				  verticalCenter="10"
-				  horizontalAlign="center"
-				  verticalAlign="middle"
-				  gap="0">
-			<s:Label id="labelMain" 
+		<s:VGroup id="containerCurrentValues"
+				  gap="0" 
+				  horizontalAlign="center" verticalAlign="middle"
+				  verticalCenter="0" horizontalCenter="0"
+				  mouseChildren.notConfirmed="false"
+				  useHandCursor.notConfirmed="true"
+				  buttonMode.notConfirmed="true">
+			<s:Label id="labelCurrentDegress" 
 					 color="#FFffff"
 					 fontFamily="Droid"
-					 fontSize="55"/>
-			<s:Label id="labelSubMain"
+					 fontSize="52"
+					 paddingLeft="20"/>
+			<s:Label id="labelConfirmChanges"
 					 color="#d0d0d0"
 					 text="CONFIRM CHANGE"
 					 fontFamily="Droid"
-					 fontSize="16"
-					 alpha="0"/>
+					 fontSize="14"
+					 visible="false"
+					 visible.notConfirmed="true"/>
 		</s:VGroup>
 		
-		<s:VGroup gap="0" 
+		<s:VGroup id="containerPrevValues"
+				  includeIn="notConfirmed"
+				  gap="0" 
 				  horizontalAlign="center" verticalAlign="middle"
-				  horizontalCenter="0" verticalCenter="85">
+				  horizontalCenter="0" verticalCenter="95"
+				  mouseChildren="false"
+				  useHandCursor="true"
+				  buttonMode="true">
 			<s:Label id="labelKeepMain" 
-					 color="#FFffff"
+					 color="#C2B538"
 					 fontFamily="Droid"
-					 fontSize="26"
+					 fontSize="14"
 					 text="KEEP"/>
-			<s:Label id="labelKeepSubMain"
-					 color="#d0d0d0"
-					 text="26"
+			<s:Label id="labelPrevValue"
+					 color="#C2B538"
 					 fontFamily="Droid"
-					 fontSize="26"
-					 alpha="1"/>
+					 fontSize="28"
+					 paddingLeft="10"/>
 		</s:VGroup>
 	</s:Group>
 	<s:Group id="highlighted"
@@ -275,7 +284,7 @@
 		<s:Path id="cursorCurrentPosition" 
 				x="100" y="100"
 				data="M 94,-2 L 114,-2 114,4 94,4 Z"
-				filters.down="{ [new spark.filters.GlowFilter(0xFFFFFF, .9, 12, 12, 1, 2)] }">
+				filters.pending="{ [ filterGlowHighlight ] }">
 			<s:fill>
 				<s:SolidColor color="#FFFFFF"/>
 			</s:fill>
@@ -285,20 +294,14 @@
 			 width="200" height="200">
 		<s:Path id="cursorPendingPosition" 
 				x="100" y="100"
-				rotation.down="{ rotateMovingCursor(hostComponent.currentValueDelta) }"
-				data.down="M 94,-2 L 114,-2 114,4 94,4 Z"
-				filters.down="{ [new spark.filters.GlowFilter(0xFFFFFF, .9, 12, 12, 1, 2)] }">
+				rotation.pending="{ rotateMovingCursor(hostComponent.currentValueDelta) }"
+				data.pending="M 94,-2 L 114,-2 114,4 94,4 Z"
+				filters.pending="{ [filterGlowHighlight] }">
 			<s:fill>
 				<s:SolidColor color="#FFFFFF"/>
 			</s:fill>
 		</s:Path>
 	</s:Group>
-	<s:Label id="labelCurrentValue"
-			 includeIn="down"
-			 fontFamily="Droid"
-			 fontSize="9"
-			 color="#FFFFFF"
-			 text="{ hostComponent.currentValue }"/>
 	
 	<s:Ellipse width="350" height="350"
 			   horizontalCenter="0" verticalCenter="0">
@@ -309,12 +312,14 @@
 			</s:LinearGradient>
 		</s:fill>
 	</s:Ellipse>
-	<!--<s:Ellipse x="38" y="38" width="224" height="224">
+	
+	<s:Ellipse horizontalCenter="0" verticalCenter="0"
+			   width="250" height="250">
 		<s:fill>
-			<s:LinearGradient rotation="60">
-				<s:GradientEntry color="#ffffff" alpha="0.7" ratio="0" />
+			<s:LinearGradient rotation="240">
+				<s:GradientEntry color="#ffffff" alpha="0.2" ratio="0" />
 				<s:GradientEntry color="#ffffff" alpha="0" ratio="1" />
 			</s:LinearGradient>
 		</s:fill>
-	</s:Ellipse>-->
+	</s:Ellipse>
 </s:Skin>
